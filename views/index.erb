@@ -1,0 +1,90 @@
+<html>
+<head>
+	<title>Hacker News Treemap</title>
+	<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript">
+	var news = <%= @json %>;
+	google.load("visualization", "1", {packages:["treemap"]});
+	google.setOnLoadCallback(drawChart);
+	var tree, data, urls;
+	
+	function drawChart() {
+		// Create and populate the data table.
+		data = new google.visualization.DataTable();
+		data.addColumn('string', 'Region');
+		data.addColumn('string', 'Parent');
+		data.addColumn('number', 'Points');
+		data.addColumn('number', 'Comments');
+		
+		urls = new Array();
+		var rows = new Array();
+		rows.push(["Hacker News",null,0,0]); // root node
+		for (i=0;i<news.items.length;i++){
+			//console.debug(news.items[i].title + ' ' + news.items[i].url + ' ' + news.items[i].points + ' ' + news.items[i].postedAgo);
+			// store url
+			urls.push(news.items[i].url);
+			
+			// area = points, color = comments
+			//rows.push([news.items[i].title,"Hacker News",news.items[i].points,news.items[i].commentCount]);
+			
+			// area = points, color = rank
+			rows.push([news.items[i].title,"Hacker News",news.items[i].points,30-i]);
+			
+			// area = points, color = time
+			//rows.push([news.items[i].title,"Hacker News",news.items[i].points,parsePostedAgo(news.items[i].postedAgo)]);
+		}
+		data.addRows(rows);
+
+		// Create and draw the visualization.
+		tree = new google.visualization.TreeMap(document.getElementById('visualization'));
+		tree.draw(data, {
+		    // red to green
+			/*
+			minColor: 'red',
+		    midColor: '#ddd',
+		    maxColor: '#0d0',
+		    */
+			// gray to white to green
+			minColor: '#666',
+			midColor: '#fff',
+		    maxColor: '#7AB83D',
+		    headerHeight: 15,
+		    fontColor: 'black',
+			fontFamily: 'Helvetica',
+			fontSize: 12,
+		    showScale: true}
+		);
+		
+		google.visualization.events.addListener(tree, 'select', selectHandler);
+	}
+		
+	function parsePostedAgo(postedAgo) {
+		var now = new Date();
+		var myRegexp = /^(\d+)\s+(\w+).*/;
+		var match = myRegexp.exec(postedAgo);
+		var factor = 60000; // milliseconds in a minute
+		switch(match[2]) {
+			case 'hour':
+			case 'hours':
+				factor *= 60; // * 60 minutes in hour = milliseconds in an hour
+				break;
+			case 'days':
+			case 'day':
+				factor *= (24*60); // * mins in hour * hours in day = milliseconds in a day
+				break;
+		}
+		// get posting time in millis
+		return (now.getTime()-parseInt(match[1])*factor);
+	}
+	
+	function selectHandler() {
+		var item = tree.getSelection();
+		window.open(urls[item[0].row-1],'_blank');
+	}
+	</script>
+	</head>
+
+	<body>
+		<div id="visualization" style="width: 1200px; height: 600px;"></div>
+	</body>
+	</html>
